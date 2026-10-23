@@ -2,6 +2,8 @@
 'use client';
 
 import { useState } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 interface LeadModalProps {
   isOpen: boolean;
@@ -11,6 +13,7 @@ interface LeadModalProps {
 
 export default function LeadModal({ isOpen, onClose, defaultPlan }: LeadModalProps) {
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false); // Loading state add kiya hai
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -20,13 +23,36 @@ export default function LeadModal({ isOpen, onClose, defaultPlan }: LeadModalPro
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      onClose();
-    }, 2500);
+    setLoading(true);
+
+    try {
+      // Firebase Firestore ke 'leads' collection me data save karna
+      await addDoc(collection(db, 'leads'), {
+        fullName: formData.fullName,
+        phone: formData.phone,
+        pincode: formData.pincode,
+        planName: formData.planName,
+        status: 'Pending',
+        createdAt: serverTimestamp(),
+      });
+
+      setLoading(false);
+      setSubmitted(true);
+
+      // 2.5 seconds ke baad modal close aur reset karna
+      setTimeout(() => {
+        setSubmitted(false);
+        setFormData({ fullName: '', phone: '', pincode: '', planName: defaultPlan || '100 Mbps Unlimited' });
+        onClose();
+      }, 2500);
+
+    } catch (error) {
+      console.error("Firebase me data save karne me error aaya: ", error);
+      setLoading(false);
+      alert('Kuch problem aayi. Kripya dobara try karein.');
+    }
   };
 
   return (
@@ -105,9 +131,10 @@ export default function LeadModal({ isOpen, onClose, defaultPlan }: LeadModalPro
 
               <button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/25 transition mt-2 active:scale-95"
+                disabled={loading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/25 transition mt-2 active:scale-95 disabled:opacity-50"
               >
-                Submit Connection Request
+                {loading ? 'Submitting...' : 'Submit Connection Request'}
               </button>
             </form>
           </>
