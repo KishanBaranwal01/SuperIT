@@ -25,17 +25,19 @@ export default function LeadModal({ isOpen, onClose, defaultPlan }: LeadModalPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Form submit button click ho gaya!");
     setLoading(true);
 
     try {
       // Firebase Firestore ke 'leads' collection me data save karna
+      console.log("Firebase me data bhej rahe hain...");
       await addDoc(collection(db, 'leads'), {
         fullName: formData.fullName,
         phone: formData.phone,
         pincode: formData.pincode,
         planName: formData.planName,
         status: 'Pending',
-        createdAt: serverTimestamp(),
+        createdAt: new Date().toISOString(),
       });
 
       setLoading(false);
